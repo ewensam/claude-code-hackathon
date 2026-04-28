@@ -12,23 +12,54 @@ The UK home insurance claims triage agent needs to: ingest inbound claims, enric
 Use a **coordinator + two specialist** structure:
 
 ```
-                    ┌──────────────────────────────┐
-  Inbound Claim  →  │         Coordinator          │
-                    │  - Ingests claim              │
-                    │  - Checks escalation rules    │
-                    │  - Runs validation-retry loop │
-                    │  - Dispatches via Task tool   │
-                    └────────────┬─────────────────┘
-                                 │
-              ┌──────────────────┴──────────────────┐
-              ▼                                     ▼
-   ┌───────────────────────┐           ┌───────────────────────┐
-   │    TriageSpecialist   │           │    ActionSpecialist   │
-   │  - policy_lookup      │           │  - claim_writer       │
-   │  - fraud_check        │           │  - document_requester │
-   │  - reserve_estimator  │           │                       │
-   │  READ-ONLY tools      │           │  WRITE-capable tools  │
-   └───────────────────────┘           └───────────────────────┘
+  Inbound Claim
+       │
+       ▼
+┌──────────────────────────────────────────────────────┐
+│                    Coordinator                        │
+│  Ingests claim, validates output, routes/escalates   │
+└──────────────────────────────────────────────────────┘
+       │
+       │  ① Task(claim body, policy_number, claimant_name, channel, timestamp)
+       ▼
+┌──────────────────────────────────────────────────────┐
+│                  TriageSpecialist                     │
+│  policy_lookup · fraud_check · reserve_estimator     │
+│  READ-ONLY tools                                     │
+└──────────────────────────────────────────────────────┘
+       │
+       │  ② Returns TriageOutput
+       │    (category, confidence, fraud_score, reserve_estimate_gbp, repair_scope, ...)
+       ▼
+┌──────────────────────────────────────────────────────┐
+│                    Coordinator                        │
+│  • Validates TriageOutput against schema (retry ≤ 3) │
+│  • Applies escalation rules → route to human if hit  │
+│  • If automated action warranted, dispatches next    │
+└──────────────────────────────────────────────────────┘
+       │
+       │  ③ Task(claim body + full TriageOutput injected as context)
+       ▼
+┌──────────────────────────────────────────────────────┐
+│                  ActionSpecialist                     │
+│  claim_writer · document_requester                   │
+│  WRITE-capable tools                                 │
+└──────────────────────────────────────────────────────┘
+       │
+       │  tool call
+       ▼
+┌──────────────────────────────────────────────────────┐
+│               PreToolUse Hook (deterministic)         │
+│  Runs before the LLM can act — not prompt-enforceable │
+│  Hard blocks:                                        │
+│    • payment > £500                                  │
+│    • fraud_flag_active or sanctions_match = True     │
+│    • policy status = lapsed or cancelled             │
+│    • document template not in approved list          │
+└──────────────────────────────────────────────────────┘
+       │  (if not blocked)
+       ▼
+  Tool executes
 ```
 
 **Context passing:** Task subagents do NOT inherit coordinator context. Every dispatch includes the full claim body, policy details, fraud score, and reserve estimate explicitly in the Task prompt. See `CLAUDE.md` for the required prompt template.

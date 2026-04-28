@@ -1,5 +1,18 @@
 # CLAUDE.md — UK Home Insurance Claims Triage Agent
 
+## Architect Exam Learning Mode
+
+This project doubles as hands-on practice for the Claude Code Architect certification. When implementing any feature, explain more than you normally would:
+
+- **Name the pattern being used** — state which cert domain or technique the code maps to (e.g. "This implements the validation-retry loop from the Prompt Engineering domain").
+- **Explain the why, not just the what** — say why this approach is preferred over the alternatives (e.g. "We use a `retryable` flag on the error code rather than prompting the agent to decide whether to retry, because the retry/escalate decision should be mechanical, not probabilistic").
+- **Call out exam-relevant distinctions explicitly** — flag any design choices that directly map to exam questions (e.g. "The hook is deterministic and runs before the LLM; the escalation rule is probabilistic and runs inside the LLM loop — this distinction is tested explicitly on the cert").
+- **Note the tradeoffs** — what are we giving up and what are we gaining with this choice.
+
+Apply this most when: writing agent loop code, designing tool interfaces and descriptions, implementing hooks, building eval harnesses, or making architectural decisions.
+
+---
+
 ## Solo-Worker Note on CLAUDE.md Structure
 
 The hackathon brief recommends a three-level `CLAUDE.md` hierarchy: user-level (personal preferences in `~/.claude/CLAUDE.md`), project-level (this file, shared in VCS), and directory-level (per-module context in subdirectory `CLAUDE.md` files). For a solo participant, this simplifies as follows:

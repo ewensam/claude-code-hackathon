@@ -92,6 +92,7 @@ python evals/run_evals.py
 
 1. **Scorecard CI harness** — wire `evals/run_evals.py` into GitHub Actions; accuracy and adversarial-pass rate move with every commit and are visible to the risk team.
 2. **The Loop** — pipe human override signals back as labelled few-shot examples for the classifier, closing the feedback loop end-to-end.
+3. **Trajectory logging and LLM review** — each agent run should emit a structured trajectory (input, tool calls in order, reasoning chain, final decision) to `logs/trajectories/` as newline-delimited JSON. Periodic LLM review of trajectories would surface systematic misclassification and reasoning drift without requiring human review of every case. Human review reserved for escalated and overridden cases. The infrastructure is straightforward — a `PostToolUse` hook writes each step, and a reviewer script runs the batch — but not implemented for the hackathon.
 3. **Real channel connectors** — email IMAP poller and web form webhook instead of CLI input.
 4. **Approval surface** — replace the CLI prompt with a minimal web UI showing the reasoning chain, fraud score, and reserve estimate alongside approve/override buttons.
 5. **MCP server** — expose `policy_lookup`, `fraud_check`, and `reserve_estimator` as an MCP server so any fresh Claude session picks the right tool on the first try without re-implementing the tool layer.
