@@ -24,7 +24,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -40,6 +39,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 from src.agents.coordinator import CoordinatorResult, run
+from src.client import make_client
 from src.models import AgentInput
 
 SAMPLE_CLAIMS_PATH = Path(__file__).parent.parent / "data" / "sample_claims.json"
@@ -117,12 +117,14 @@ def main() -> None:
     parser.add_argument("--output", metavar="FILE", help="Write results to JSON file")
     args = parser.parse_args()
 
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        logger.error("ANTHROPIC_API_KEY not set. Add it to .env or export it.")
+    use_bedrock = bool(os.getenv("USE_BEDROCK") or os.getenv("CLAUDE_CODE_USE_BEDROCK"))
+    if not use_bedrock and not os.getenv("ANTHROPIC_API_KEY"):
+        logger.error("Set ANTHROPIC_API_KEY for direct API, or USE_BEDROCK=1 with AWS credentials.")
         sys.exit(1)
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = make_client()
+    backend = "Bedrock" if use_bedrock else "Anthropic API"
+    logger.info("Using %s backend", backend)
     results: list[CoordinatorResult] = []
 
     if args.all:

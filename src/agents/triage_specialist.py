@@ -15,19 +15,17 @@ is called and returns its input as the result.
 """
 
 import logging
-import os
 from typing import Optional
 
 import anthropic
 
 from src.agent_loop import AgentLoopResult, run_agent_loop
+from src.client import default_model
 from src.models import AgentInput
 from src.tools import TRIAGE_TOOL_EXECUTOR
 from src.tools.tool_definitions import TRIAGE_TOOLS
 
 logger = logging.getLogger(__name__)
-
-MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
 
 SYSTEM_PROMPT = """You are the TriageSpecialist for a UK home insurance claims triage system.
 
@@ -125,12 +123,13 @@ Run policy_lookup, fraud_check, and reserve_estimator, then submit your triage o
 
     return run_agent_loop(
         client=client,
-        model=MODEL,
+        model=default_model(),
         system_prompt=SYSTEM_PROMPT,
         tools=TRIAGE_TOOLS,
         initial_messages=[{"role": "user", "content": task_prompt}],
         tool_executor=tool_executor,
         structured_output_tool="submit_triage_output",
+
         pre_tool_use=None,  # Read-only — no PreToolUse hook needed
         post_tool_use=None,  # Policy lookup PII redaction happens in ActionSpecialist context
     )

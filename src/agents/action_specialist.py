@@ -19,11 +19,11 @@ is already answered — it just decides HOW to act.
 """
 
 import logging
-import os
 
 import anthropic
 
 from src.agent_loop import AgentLoopResult, run_agent_loop
+from src.client import default_model
 from src.hooks.post_tool_use import post_tool_use
 from src.hooks.pre_tool_use import pre_tool_use
 from src.models import AgentInput, TriageOutput
@@ -31,8 +31,6 @@ from src.tools import ACTION_TOOL_EXECUTOR
 from src.tools.tool_definitions import ACTION_TOOLS
 
 logger = logging.getLogger(__name__)
-
-MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
 
 SYSTEM_PROMPT = """You are the ActionSpecialist for a UK home insurance claims triage system.
 
@@ -131,7 +129,7 @@ Execute the action, then call submit_action_output with a summary of what was do
 
     return run_agent_loop(
         client=client,
-        model=MODEL,
+        model=default_model(),
         system_prompt=SYSTEM_PROMPT,
         tools=ACTION_TOOLS,
         initial_messages=[{"role": "user", "content": task_prompt}],
