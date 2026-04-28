@@ -24,6 +24,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Windows consoles default to cp1252 which can't encode the box-drawing
+# characters used in print_result. Reconfigure to UTF-8 if possible.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from dotenv import load_dotenv
 
 load_dotenv()

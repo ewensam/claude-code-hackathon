@@ -24,10 +24,9 @@ import anthropic
 
 # Default models — override with CLAUDE_MODEL env var
 _DEFAULT_DIRECT_MODEL = "claude-haiku-4-5-20251001"
-_DEFAULT_BEDROCK_MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
-# Fallback if 4.5 isn't available in the region
-_FALLBACK_BEDROCK_MODEL = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+# eu-north-1 uses the EU cross-region inference profile prefix
+_DEFAULT_BEDROCK_MODEL = "eu.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 Client = Union[anthropic.Anthropic, anthropic.AnthropicBedrock]
 
@@ -41,8 +40,12 @@ def _use_bedrock() -> bool:
 def make_client() -> Client:
     """Return an Anthropic or AnthropicBedrock client based on environment."""
     if _use_bedrock():
-        region = os.getenv("AWS_DEFAULT_REGION", os.getenv("AWS_REGION", "us-east-1"))
-        return anthropic.AnthropicBedrock(aws_region=region)
+        region = os.getenv("AWS_DEFAULT_REGION", os.getenv("AWS_REGION", "eu-north-1"))
+        profile = os.getenv("AWS_PROFILE")
+        kwargs: dict = {"aws_region": region}
+        if profile:
+            kwargs["aws_profile"] = profile
+        return anthropic.AnthropicBedrock(**kwargs)
     return anthropic.Anthropic()
 
 
