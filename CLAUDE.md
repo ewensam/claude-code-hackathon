@@ -175,7 +175,13 @@ src/
     pre_tool_use.py         # Hard-block hook
     post_tool_use.py        # PII redaction hook
   models.py                 # Pydantic schemas (TriageOutput, AgentInput, etc.)
+  client.py                 # Anthropic/Bedrock client factory
+  agent_loop.py             # Generic agent loop (stop_reason handling, SSE, hooks)
+  api.py                    # FastAPI web UI backend (SSE streaming, /submit, /stream)
   main.py                   # CLI entry point
+
+ui/
+  index.html                # Single-file web UI (dark theme, live log feed, result card)
 
 decisions/
   ADR-001-agent-architecture.md

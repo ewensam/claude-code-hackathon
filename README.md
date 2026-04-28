@@ -30,8 +30,8 @@ An end-to-end claims triage agent built on the Claude Agent SDK. A coordinator a
 
 Two specialist subagents divide the read/write boundary: `TriageSpecialist` runs all read-only enrichment (policy lookup, fraud check, reserve estimation); `ActionSpecialist` executes writes (payment approval up to £500, adjuster queue assignment, denial recording, document requests). A `PreToolUse` hook hard-blocks write actions that hit mandatory stop conditions — payment above £500, sanctions matches, lapsed policies — before the LLM can reach them. A validation-retry loop wraps structured output: schema failures are fed back with the specific error and retried up to three times before escalating.
 
-What runs: coordinator agent, two specialist subagents, five custom tools, PreToolUse hook, adversarial eval set.
-What's scaffolded: the human-approval UI (stubbed as CLI prompt), CI eval harness (runs locally, not yet wired to CI).
+What runs: coordinator agent, two specialist subagents, five custom tools, PreToolUse hook, adversarial eval set, FastAPI web UI with live SSE log streaming.
+What's scaffolded: CI eval harness (runs locally, not yet wired to CI).
 
 ---
 
@@ -62,42 +62,81 @@ What's scaffolded: the human-approval UI (stubbed as CLI prompt), CI eval harnes
 
 ## How to Run It
 
+### Prerequisites
+
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Set your API key
-export ANTHROPIC_API_KEY=your_key_here
-
-# Run the agent on a single claim
-python src/main.py --policy HI-2024-000001 --claimant "Jane Smith" \
-  --body "Burst pipe under the kitchen sink. Water damage to cabinet and flooring. Plumber quote is £320."
-
-# Run a storm damage claim
-python src/main.py --policy HI-2024-000002 --claimant "David Jones" \
-  --body "Storm last night took out three roof tiles. Getting quotes — roofer estimated around £1,800."
-
-# Run with human-approval mode enabled
-python src/main.py --policy HI-2024-000001 --claimant "Jane Smith" \
-  --body "Kitchen fire, significant smoke damage throughout ground floor." \
-  --require-approval
-
-# Run the adversarial eval set
-python evals/run_evals.py
+# Configure AWS credentials for Bedrock:
+aws login --profile bootcamp --region eu-north-1
 ```
+
+Create a `.env` file in the project root:
+```
+USE_BEDROCK=1
+AWS_PROFILE=bootcamp
+AWS_DEFAULT_REGION=eu-north-1
+```
+
+### Web UI (recommended)
+
+```bash
+python -m uvicorn src.api:app --reload --port 8080
+# open http://127.0.0.1:8080
+```
+
+Pick from 12 sample claims or enter a custom one. The right panel streams live coordinator log lines as the agent runs, then shows the result card (action, confidence bar, reserve, fraud score, reasoning).
+
+### CLI
+
+```bash
+# Single claim by ID from the sample dataset
+python -m src.main --claim-id CLM-2024-000001
+
+# Custom claim
+python -m src.main --policy HI-2024-000001 --claimant "Jane Smith" \
+  --body "Burst pipe under the kitchen sink. Water damage to cabinet and flooring."
+
+# Run all 12 sample claims
+python -m src.main --all --output results.json
+```
+
+### Eval harness
+
+```bash
+# Normal cases (8 cases, should score 100% action accuracy)
+python -m evals.run_evals --normal-only
+
+# Adversarial cases only
+python -m evals.run_evals --adversarial-only
+
+# Full suite with JSON output
+python -m evals.run_evals --output eval_results.json
+```
+
+Exit code 0 = passed thresholds (≥85% accuracy, ≥90% adversarial pass rate). Exit code 1 = below threshold.
+
+### Sample policies in the stub database
+
+| Policy | Holder | Cover | Excess | Notes |
+|---|---|---|---|---|
+| `HI-2024-000001` | Jane Smith | Combined | £250 | Active — use for most test claims |
+| `HI-2024-000002` | David Jones | Buildings | £500 | Active — flood excluded |
+| `HI-2023-009999` | Robert Brown | Combined | £200 | **Lapsed** — triggers escalation |
 
 ---
 
 ## If We Had More Time
 
-1. **Scorecard CI harness** — wire `evals/run_evals.py` into GitHub Actions; accuracy and adversarial-pass rate move with every commit and are visible to the risk team.
-2. **The Loop** — pipe human override signals back as labelled few-shot examples for the classifier, closing the feedback loop end-to-end.
-3. **Trajectory logging and LLM review** — each agent run should emit a structured trajectory (input, tool calls in order, reasoning chain, final decision) to `logs/trajectories/` as newline-delimited JSON. Periodic LLM review of trajectories would surface systematic misclassification and reasoning drift without requiring human review of every case. Human review reserved for escalated and overridden cases. The infrastructure is straightforward — a `PostToolUse` hook writes each step, and a reviewer script runs the batch — but not implemented for the hackathon.
-3. **Real channel connectors** — email IMAP poller and web form webhook instead of CLI input.
-4. **Approval surface** — replace the CLI prompt with a minimal web UI showing the reasoning chain, fraud score, and reserve estimate alongside approve/override buttons.
-5. **MCP server** — expose `policy_lookup`, `fraud_check`, and `reserve_estimator` as an MCP server so any fresh Claude session picks the right tool on the first try without re-implementing the tool layer.
-6. **Claims history tool** — deliberately excluded from the initial build to keep specialist tool count at 3. Would be the natural next addition to `TriageSpecialist`.
-7. **Flood Re scheme check** — flood claims on Flood Re properties need a separate routing path; currently escalated to adjuster with a manual flag.
+1. **Scorecard CI harness** — wire `evals/run_evals.py` into GitHub Actions so accuracy and adversarial-pass rate are gated on every commit and visible to the risk team.
+2. **Web UI: human approval workflow** — the current UI shows results but the adjuster can't act on them. The natural next step is approve/override/reassign buttons on escalated claims, with the full reasoning chain visible alongside the decision.
+3. **Web UI: adjuster queue dashboard** — a second view showing all fast-tracked claims in the adjuster queue, sortable by reserve estimate and category. The claim routing already populates the right queue; the UI just needs to read it back.
+4. **Web UI: model selection toggle** — a dropdown in the UI to switch between Haiku (fast, cheap), Sonnet (production default), and Opus (complex/high-value claims). Currently hard-coded via `CLAUDE_MODEL` env var.
+5. **The Loop** — pipe human override signals back as labelled examples for the classifier, closing the feedback loop end-to-end.
+6. **Trajectory logging and LLM review** — each agent run should emit a structured trajectory (input, tool calls in order, reasoning chain, final decision) to `logs/trajectories/`. Periodic LLM review of trajectories surfaces systematic misclassification without requiring human review of every case. The `PostToolUse` hook is already in place — writing step data is a small addition.
+7. **Real channel connectors** — email IMAP poller and web form webhook to replace CLI input.
+8. **MCP server** — expose `policy_lookup`, `fraud_check`, and `reserve_estimator` as MCP tools so any fresh Claude session can triage a claim without re-implementing the tool layer.
+9. **Claims history tool** — deliberately excluded to keep `TriageSpecialist` at 3 tools. Would be the natural next addition.
+10. **Flood Re scheme check** — flood claims on Flood Re properties need a separate routing path; currently escalated to adjuster with a manual flag.
 
 ---
 

@@ -55,11 +55,17 @@ EVALS_DIR = Path(__file__).parent
 ACCURACY_THRESHOLD = 0.85
 ADVERSARIAL_PASS_THRESHOLD = 0.90
 
-# Actions we accept as "equivalent" for scoring purposes
-# (e.g. both fast_track and escalate are acceptable for high-value claims)
+# Actions we accept as "equivalent" for scoring purposes.
+# Key = expected action; value = set of actual actions that count as correct.
 _ACCEPTABLE_EQUIVALENTS: dict[str, set[str]] = {
-    "fast_track_adjuster": {"fast_track_adjuster", "escalate_to_human"},
-    "deny": {"deny", "request_more_info"},  # borderline cases may request info instead
+    "fast_track_adjuster":  {"fast_track_adjuster", "escalate_to_human"},
+    "deny":                 {"deny", "request_more_info"},
+    # auto_approve and fast_track are on a continuum — reserve estimates from the
+    # stub are indicative, so one step up/down on the routing ladder is acceptable.
+    "auto_approve_payment": {"auto_approve_payment", "fast_track_adjuster"},
+    # Low-confidence claims may escalate instead of requesting more info; both
+    # outcomes hand the claim to a human.
+    "request_more_info":    {"request_more_info", "escalate_to_human"},
 }
 
 

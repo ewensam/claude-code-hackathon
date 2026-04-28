@@ -664,30 +664,30 @@ python -m evals.run_evals \
     <h2>If we had more time</h2>
     <div class="three-col">
       <div class="card">
+        <h3>Web UI <span style="font-size:11px; font-weight:400; color:#22c55e; background:#052e16; padding:2px 8px; border-radius:12px; margin-left:4px;">shipped</span></h3>
+        <ul>
+          <li>FastAPI + SSE streaming — live log feed per claim</li>
+          <li>12 sample claims + custom claim entry</li>
+          <li>Result card: action badge, confidence bar, fraud score, reasoning</li>
+        </ul>
+        <p style="font-size:12px; color:#9ca3af; margin-top:10px; margin-bottom:0;">Next: adjuster approval buttons on escalated claims · adjuster queue dashboard · model selector (Haiku / Sonnet / Opus toggle)</p>
+      </div>
+      <div class="card">
         <h3>Production readiness</h3>
         <ul>
-          <li>Scorecard CI harness — accuracy in every PR</li>
+          <li>Scorecard CI harness — accuracy gated on every PR</li>
           <li>Real channel connectors (email IMAP, web form webhook)</li>
-          <li>Human approval UI with reasoning chain shown</li>
-          <li>Trajectory logging (PostToolUse → NDJSON)</li>
+          <li>Trajectory logging (PostToolUse → NDJSON per run)</li>
+          <li>LLM batch review of trajectories for drift detection</li>
         </ul>
       </div>
       <div class="card">
-        <h3>The Loop (Stretch)</h3>
+        <h3>The Loop + MCP</h3>
         <ul>
           <li>Human override signals → labelled few-shot store</li>
           <li>Few-shot examples fed back to coordinator classifier</li>
-          <li>LLM batch review of trajectories for drift detection</li>
-          <li>Flood Re scheme property routing</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>MCP server</h3>
-        <ul>
-          <li>Expose policy_lookup, fraud_check, reserve_estimator as MCP tools</li>
-          <li>Fresh Claude session picks right tool on first try</li>
-          <li>Claims history lookup (next tool addition to TriageSpecialist)</li>
-          <li>Subsidence specialist routing path</li>
+          <li>MCP server: expose policy_lookup, fraud_check, reserve_estimator</li>
+          <li>Claims history tool · Flood Re scheme routing</li>
         </ul>
       </div>
     </div>

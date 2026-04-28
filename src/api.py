@@ -99,6 +99,11 @@ _routing_handler.setFormatter(_fmt)
 _routing_handler.addFilter(PerRequestFilter())
 logging.getLogger().addHandler(_routing_handler)
 
+# Allow INFO from src.* so coordinator log lines flow through to the routing handler.
+# The root logger defaults to WARNING, which silently drops INFO records before
+# they ever reach our handler — this is the fix.
+logging.getLogger("src").setLevel(logging.INFO)
+
 # Suppress noisy loggers so they don't appear in the claim log feed
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("uvicorn").setLevel(logging.WARNING)
