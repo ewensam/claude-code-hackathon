@@ -31,6 +31,7 @@
   .slide.visible { opacity: 1; }
 
   /* Slide backgrounds */
+  .slide-3 { justify-content: flex-start; padding-top: 44px; }
   .slide-1 { background: linear-gradient(135deg, #0f1117 0%, #1a1f35 100%); }
   .slide-2, .slide-4, .slide-6, .slide-8 { background: #13161f; }
   .slide-3, .slide-5, .slide-7 { background: #0f1117; }
@@ -122,22 +123,115 @@
   .code-block .cm { color: #6b7280; font-style: italic; }
   .code-block .st { color: #a5d6ff; }
 
-  /* Architecture diagram */
-  .arch {
-    background: #0a0c14;
-    border: 1px solid #2d3348;
-    border-radius: 10px;
-    padding: 28px 32px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    line-height: 1.8;
-    color: #c9d1d9;
+  /* Architecture diagram — CSS flow */
+  .flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
     width: 100%;
+    margin-top: 4px;
   }
-  .arch .box { color: #f59e0b; }
-  .arch .arrow { color: #6b7280; }
-  .arch .label { color: #60a5fa; }
-  .arch .hook { color: #f87171; }
+  .flow-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .flow-node {
+    width: 100%;
+    border-radius: 10px;
+    padding: 12px 18px;
+    border: 1.5px solid #2d3348;
+    background: #1c2030;
+    text-align: center;
+  }
+  .flow-node.coord { border-color: #d97706; }
+  .flow-node.triage { border-color: #3b82f6; }
+  .flow-node.action { border-color: #3b82f6; }
+  .flow-node.hook { border-color: #ef4444; background: #1a0e0e; }
+  .flow-node-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .flow-node-tools {
+    font-size: 11px;
+    color: #6b7280;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.5;
+  }
+  .flow-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .flow-tag.read { background: #0a1f3a; color: #60a5fa; border: 1px solid #1e3a5f; }
+  .flow-tag.write { background: #0a2a1a; color: #4ade80; border: 1px solid #1e4a2a; }
+  .flow-tag.det { background: #2a0a0a; color: #f87171; border: 1px solid #4a1a1a; }
+  .flow-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 0;
+    gap: 2px;
+  }
+  .flow-v-line {
+    width: 2px;
+    height: 14px;
+    background: #374151;
+  }
+  .flow-arrow-tip {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #374151;
+  }
+  .flow-step-label {
+    font-size: 11px;
+    color: #9ca3af;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    padding: 2px 8px;
+    background: #0f1117;
+    border-radius: 4px;
+    margin: 2px 0;
+    white-space: nowrap;
+  }
+  .flow-entry {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f59e0b;
+    background: #2a1f0a;
+    border: 1px solid #4a3a0a;
+    border-radius: 20px;
+    padding: 6px 18px;
+    text-align: center;
+  }
+  .flow-side-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 40px 0 0 20px;
+    gap: 0;
+    flex: 0 0 auto;
+    width: 200px;
+  }
+  .flow-side-label {
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.4;
+    padding: 8px 0;
+  }
+  .flow-side-label strong { color: #9ca3af; display: block; }
 
   /* Tags / badges */
   .badge {
@@ -308,36 +402,85 @@
     <div class="slide-num">03 / 08</div>
     <div class="eyebrow">Architecture</div>
     <h2>Coordinator + Specialist split</h2>
-    <div class="arch">
-<span class="label">Inbound Claim</span>
-    │
-    ▼
-<span class="box">┌─────────────────────────────────────────────────────┐
-│                    Coordinator                       │
-│  Ingests · validates output · routes · escalates    │
-└──────────────────────────────────────────────────────┘</span>
-    │
-    │  <span class="label">① Task(claim body, policy_number, claimant_name, ...)</span>
-    ▼
-<span class="box">┌──────────────────────────────────────────────────────┐
-│               TriageSpecialist  (READ-ONLY)          │
-│  policy_lookup · fraud_check · reserve_estimator    │
-└──────────────────────────────────────────────────────┘</span>
-    │  <span class="label">② TriageOutput → Coordinator validates (retry ≤ 3) → checks escalation rules</span>
-    ▼
-<span class="box">┌──────────────────────────────────────────────────────┐
-│               ActionSpecialist  (WRITE)              │
-│  claim_writer · document_requester                  │
-└──────────────────────────────────────────────────────┘</span>
-    │  tool call
-    ▼
-<span class="hook">┌──────────────────────────────────────────────────────┐
-│          PreToolUse Hook  (deterministic)             │
-│  payment &gt; £500 · fraud active · policy lapsed      │
-└──────────────────────────────────────────────────────┘</span>
-    │  (if not blocked)
-    ▼  Tool executes
-    </div>
+
+    <div class="flow">
+      <div class="flow-column">
+
+        <!-- Entry -->
+        <div class="flow-entry">Inbound Claim</div>
+
+        <!-- → Coordinator -->
+        <div class="flow-connector">
+          <div class="flow-v-line"></div>
+          <div class="flow-arrow-tip"></div>
+        </div>
+
+        <!-- Coordinator -->
+        <div class="flow-node coord">
+          <div class="flow-node-title">Coordinator</div>
+          <div class="flow-node-tools">Ingests · validates output · routes · escalates</div>
+        </div>
+
+        <!-- → TriageSpecialist -->
+        <div class="flow-connector">
+          <div class="flow-v-line"></div>
+          <div class="flow-step-label">① Task(claim body, policy_number, claimant_name, …)</div>
+          <div class="flow-v-line"></div>
+          <div class="flow-arrow-tip"></div>
+        </div>
+
+        <!-- TriageSpecialist -->
+        <div class="flow-node triage">
+          <div class="flow-node-title">
+            TriageSpecialist
+            <span class="flow-tag read">READ-ONLY</span>
+          </div>
+          <div class="flow-node-tools">policy_lookup · fraud_check · reserve_estimator</div>
+        </div>
+
+        <!-- TriageOutput back + → ActionSpecialist -->
+        <div class="flow-connector">
+          <div class="flow-v-line"></div>
+          <div class="flow-step-label">② TriageOutput → validate (retry ≤ 3) → escalation check</div>
+          <div class="flow-v-line"></div>
+          <div class="flow-arrow-tip"></div>
+        </div>
+
+        <!-- ActionSpecialist -->
+        <div class="flow-node action">
+          <div class="flow-node-title">
+            ActionSpecialist
+            <span class="flow-tag write">WRITE</span>
+          </div>
+          <div class="flow-node-tools">claim_writer · document_requester</div>
+        </div>
+
+        <!-- → Hook -->
+        <div class="flow-connector">
+          <div class="flow-v-line"></div>
+          <div class="flow-step-label">③ tool call</div>
+          <div class="flow-v-line"></div>
+          <div class="flow-arrow-tip"></div>
+        </div>
+
+        <!-- PreToolUse Hook -->
+        <div class="flow-node hook">
+          <div class="flow-node-title">
+            PreToolUse Hook
+            <span class="flow-tag det">deterministic</span>
+          </div>
+          <div class="flow-node-tools">payment &gt; £500 · fraud active · policy lapsed</div>
+        </div>
+
+        <!-- → executes -->
+        <div class="flow-connector">
+          <div class="flow-v-line"></div>
+          <div class="flow-step-label">(if not blocked) → tool executes</div>
+        </div>
+
+      </div><!-- /.flow-column -->
+    </div><!-- /.flow -->
+
   </div>
 
   <!-- ── Slide 4: Key Design Decisions ── -->
