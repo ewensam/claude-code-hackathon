@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claims Triage Agent</title>
+<style>
+  :root {
+    --bg:      #0f1117;
+    --surface: #1a1d27;
+    --surface2:#13161f;
+    --border:  #2d3148;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --green:   #22c55e;
+    --amber:   #f59e0b;
+    --red:     #ef4444;
+    --blue:    #3b82f6;
+    --purple:  #a855f7;
+    --green-bg:#0a2018;
+    --amber-bg:#1f1505;
+    --red-bg:  #1f0505;
+    --blue-bg: #050f1f;
+    --purple-bg:#120a1f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    min-height: 52px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.01em;
+  }
+  header h1 span { color: var(--amber); }
+
+  .status-row { display: flex; align-items: center; gap: 8px; }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .status-dot.processing { background: var(--amber); animation: pulse 1s infinite; }
+  .status-dot.done       { background: var(--green); }
+  .status-dot.error      { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-label { font-size: 12px; color: var(--muted); }
+
+  /* ── Main layout ── */
+  main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  /* ── Left panel ── */
+  #input-panel {
+    width: 360px;
+    min-width: 360px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .panel-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  select, input, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 10px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--amber); }
+  select option { background: var(--surface2); }
+
+  textarea { resize: vertical; line-height: 1.5; }
+  textarea[readonly] { color: var(--muted); cursor: default; }
+
+  .toggle-btn {
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .toggle-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+  #custom-form { display: flex; flex-direction: column; gap: 8px; }
+
+  .submit-btn {
+    background: var(--amber);
+    color: #0f1117;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .submit-btn:hover:not(:disabled) { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .error-msg { font-size: 12px; color: var(--red); display: none; }
+
+  /* ── Right panel ── */
+  #output-panel {
+    flex: 1;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Log feed */
+  #log-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: #0a0d14;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    border-bottom: 1px solid var(--border);
+    min-height: 0;
+  }
+  .log-placeholder { color: var(--muted); font-style: italic; }
+  .log-line { margin-bottom: 2px; white-space: pre-wrap; word-break: break-word; }
+  .log-line.info    { color: #8b9ab0; }
+  .log-line.ok      { color: #4ade80; }
+  .log-line.warn    { color: var(--amber); }
+  .log-line.err     { color: var(--red); }
+
+  /* Result card */
+  #result-card {
+    padding: 20px;
+    overflow-y: auto;
+    min-height: 220px;
+    max-height: 55%;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #result-card.visible { opacity: 1; }
+
+  .result-placeholder { color: var(--muted); font-size: 13px; font-style: italic; }
+
+  /* Action badge */
+  .action-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    border: 1px solid;
+  }
+  .action-badge.green  { background: var(--green-bg);  color: var(--green);  border-color: #1a4a2a; }
+  .action-badge.blue   { background: var(--blue-bg);   color: var(--blue);   border-color: #0a2a4a; }
+  .action-badge.amber  { background: var(--amber-bg);  color: var(--amber);  border-color: #3a2a0a; }
+  .action-badge.red    { background: var(--red-bg);    color: var(--red);    border-color: #3a0a0a; }
+  .action-badge.purple { background: var(--purple-bg); color: var(--purple); border-color: #2a0a3a; }
+
+  /* Confidence bar */
+  .confidence-section { margin-bottom: 16px; }
+  .confidence-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  .confidence-bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .confidence-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--green);
+    width: 0;
+    transition: width 0.8s ease;
+  }
+  .confidence-bar-fill.mid  { background: var(--amber); }
+  .confidence-bar-fill.low  { background: var(--red); }
+  .confidence-pct {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    text-align: right;
+  }
+
+  /* Metric grid */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .metric {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .metric-key {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .metric-val {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .metric-val.fraud-high { color: var(--red); }
+  .metric-val.fraud-ok   { color: var(--green); }
+
+  /* Escalation alert */
+  .escalation-alert {
+    background: var(--amber-bg);
+    border: 1px solid #3a2a0a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--amber);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* Action result */
+  .action-result {
+    background: var(--green-bg);
+    border: 1px solid #1a4a2a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #86efac;
+  }
+
+  /* Reasoning */
+  details {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  summary {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    user-select: none;
+  }
+  summary:hover { color: var(--text); }
+  .reasoning-text {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #8b9ab0;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    white-space: pre-wrap;
+  }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>UK</span> Home Insurance Claims Triage</h1>
+  <div class="status-row">
+    <div class="status-dot" id="status-dot"></div>
+    <span class="status-label" id="status-label">Idle</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Left panel: input ── -->
+  <section id="input-panel">
+
+    <div>
+      <div class="panel-label">Sample Claims</div>
+      <select id="claim-select">
+        <option value="">Loading claims…</option>
+      </select>
+    </div>
+
+    <div id="preview-section" style="display:none">
+      <div class="panel-label">Claim Body</div>
+      <textarea id="claim-body-preview" readonly rows="6"></textarea>
+    </div>
+
+    <hr>
+
+    <button class="toggle-btn" id="custom-toggle">+ Enter a custom claim</button>
+
+    <div id="custom-form" style="display:none">
+      <div class="panel-label">Policy Number</div>
+      <input type="text" id="custom-policy" placeholder="e.g. HI-2024-000001">
+      <div class="panel-label" style="margin-top:8px">Claimant Name</div>
+      <input type="text" id="custom-claimant" placeholder="Full name">
+      <div class="panel-label" style="margin-top:8px">Claim Description</div>
+      <textarea id="custom-body" rows="6" placeholder="Describe the damage or loss in detail…"></textarea>
+    </div>
+
+    <button class="submit-btn" id="submit-btn">Submit Claim</button>
+    <p class="error-msg" id="error-msg"></p>
+
+  </section>
+
+  <!-- ── Right panel: output ── -->
+  <section id="output-panel">
+
+    <div id="log-feed">
+      <p class="log-placeholder">Submit a claim to see live processing logs…</p>
+    </div>
+
+    <div id="result-card">
+      <p class="result-placeholder">Results will appear here after processing.</p>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+  let allClaims = [];
+  let customMode = false;
+  let processing = false;
+  let currentEs = null;
+
+  // ---------------------------------------------------------------------------
+  // Action metadata
+  // ---------------------------------------------------------------------------
+  const ACTION_META = {
+    auto_approve_payment: { cls: 'green',  icon: '✓', label: 'Payment Approved'            },
+    fast_track_adjuster:  { cls: 'blue',   icon: '→', label: 'Fast-Tracked to Adjuster'    },
+    request_more_info:    { cls: 'amber',  icon: '?', label: 'More Information Required'    },
+    deny:                 { cls: 'red',    icon: '✗', label: 'Claim Denied'                 },
+    escalate_to_human:    { cls: 'amber',  icon: '⚑', label: 'Escalated for Human Review'  },
+    investigate:          { cls: 'purple', icon: '⚿', label: 'Flagged for Investigation'   },
+  };
+
+  // ---------------------------------------------------------------------------
+  // Load sample claims
+  // ---------------------------------------------------------------------------
+  async function loadClaims() {
+    try {
+      const res = await fetch('/claims');
+      allClaims = await res.json();
+      const sel = document.getElementById('claim-select');
+      sel.innerHTML = '<option value="">— Pick a sample claim —</option>';
+      allClaims.forEach((c, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        const scenario = c._scenario ? c._scenario.replace(/^NORM:\s*|^ADV:\s*/i, '') : '';
+        opt.textContent = `${c.request_id}  —  ${scenario || c.body.slice(0, 60)}`;
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      console.error('Failed to load claims', e);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dropdown → body preview
+  // ---------------------------------------------------------------------------
+  document.getElementById('claim-select').addEventListener('change', function () {
+    const idx = this.value;
+    const preview = document.getElementById('preview-section');
+    if (idx === '') { preview.style.display = 'none'; return; }
+    const claim = allClaims[parseInt(idx)];
+    document.getElementById('claim-body-preview').value = claim.body;
+    preview.style.display = 'block';
+  });
+
+  // ---------------------------------------------------------------------------
+  // Custom form toggle
+  // ---------------------------------------------------------------------------
+  document.getElementById('custom-toggle').addEventListener('click', function () {
+    customMode = !customMode;
+    document.getElementById('custom-form').style.display = customMode ? 'flex' : 'none';
+    document.getElementById('claim-select').disabled = customMode;
+    document.getElementById('preview-section').style.display = customMode ? 'none' : (document.getElementById('claim-select').value !== '' ? 'block' : 'none');
+    this.textContent = customMode ? '← Use sample claim instead' : '+ Enter a custom claim';
+  });
+
+  // ---------------------------------------------------------------------------
+  // Submit
+  // ---------------------------------------------------------------------------
+  document.getElementById('submit-btn').addEventListener('click', onSubmit);
+
+  async function onSubmit() {
+    if (processing) return;
+    hideError();
+
+    let payload;
+    if (customMode) {
+      const policy   = document.getElementById('custom-policy').value.trim();
+      const claimant = document.getElementById('custom-claimant').value.trim();
+      const body     = document.getElementById('custom-body').value.trim();
+      if (!policy || !claimant || !body) {
+        showError('Please fill in policy number, claimant name, and claim description.');
+        return;
+      }
+      payload = { policy_number: policy, claimant_name: claimant, body };
+    } else {
+      const idx = document.getElementById('claim-select').value;
+      if (idx === '') { showError('Please select a sample claim.'); return; }
+      payload = { ...allClaims[parseInt(idx)] };
+    }
+
+    setProcessing(true);
+    clearLog();
+    clearResult();
+
+    try {
+      const res = await fetch('/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || 'Submit failed');
+      }
+      const { job_id } = await res.json();
+      openStream(job_id);
+    } catch (e) {
+      showError(e.message);
+      setProcessing(false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // SSE stream
+  // ---------------------------------------------------------------------------
+  function openStream(jobId) {
+    if (currentEs) { currentEs.close(); }
+    const es = new EventSource(`/stream/${jobId}`);
+    currentEs = es;
+
+    es.addEventListener('log', e => {
+      const { message } = JSON.parse(e.data);
+      appendLog(message);
+    });
+
+    es.addEventListener('result', e => {
+      const { message } = JSON.parse(e.data);
+      try { renderResult(JSON.parse(message)); } catch (err) { showError('Failed to parse result.'); }
+    });
+
+    es.addEventListener('error_event', e => {
+      const { message } = JSON.parse(e.data);
+      showError(message);
+    });
+
+    es.addEventListener('done', () => {
+      es.close();
+      currentEs = null;
+      setProcessing(false);
+    });
+
+    es.onerror = () => {
+      es.close();
+      currentEs = null;
+      setProcessing(false);
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Log feed
+  // ---------------------------------------------------------------------------
+  function clearLog() {
+    const feed = document.getElementById('log-feed');
+    feed.innerHTML = '';
+  }
+
+  function appendLog(msg) {
+    const feed = document.getElementById('log-feed');
+    const div = document.createElement('div');
+    div.className = 'log-line ' + classifyLog(msg);
+    div.textContent = msg;
+    feed.appendChild(div);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function classifyLog(msg) {
+    if (/\[ERROR\]/.test(msg))   return 'err';
+    if (/\[WARNING\]/.test(msg)) return 'warn';
+    if (/validated|Dispatching|Claim processed/i.test(msg)) return 'ok';
+    if (/Escalating/i.test(msg)) return 'warn';
+    return 'info';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Result card
+  // ---------------------------------------------------------------------------
+  function clearResult() {
+    const card = document.getElementById('result-card');
+    card.classList.remove('visible');
+    card.innerHTML = '<p class="result-placeholder">Results will appear here after processing.</p>';
+  }
+
+  function renderResult(result) {
+    const card = document.getElementById('result-card');
+    const t = result.triage;
+    if (!t && !result.error) {
+      card.innerHTML = '<p class="result-placeholder">No triage data returned.</p>';
+      card.classList.add('visible');
+      return;
+    }
+    if (result.error && !t) {
+      card.innerHTML = `<div class="action-badge red">✗ Processing Error</div><p style="color:var(--red);font-size:13px">${escHtml(result.error)}</p>`;
+      card.classList.add('visible');
+      return;
+    }
+
+    const action = t.recommended_action || 'escalate_to_human';
+    const meta   = ACTION_META[action] || { cls: 'amber', icon: '?', label: action };
+    const conf   = Math.round((t.confidence || 0) * 100);
+    const confCls = conf >= 85 ? '' : conf >= 70 ? 'mid' : 'low';
+
+    const fraudScore = t.fraud_score != null ? t.fraud_score : null;
+    const fraudHigh  = fraudScore != null && fraudScore >= 0.30;
+
+    let html = '';
+
+    // Action badge
+    html += `<div class="action-badge ${meta.cls}">${meta.icon} ${meta.label}</div>`;
+
+    // Escalation alert
+    if (result.escalated && result.escalation_reason) {
+      html += `<div class="escalation-alert"><span>⚑</span><div><strong>Escalated:</strong> ${escHtml(result.escalation_reason)}</div></div>`;
+    }
+
+    // Confidence bar
+    html += `
+      <div class="confidence-section">
+        <div class="confidence-label">Confidence</div>
+        <div class="confidence-bar-track"><div class="confidence-bar-fill ${confCls}" id="conf-bar" style="width:0%"></div></div>
+        <div class="confidence-pct">${conf}%</div>
+      </div>`;
+
+    // Metric grid
+    const reserve = t.reserve_estimate_gbp != null ? `£${Math.round(t.reserve_estimate_gbp).toLocaleString()}` : '—';
+    const excess  = t.excess_gbp           != null ? `£${Math.round(t.excess_gbp).toLocaleString()}`           : '—';
+    const fraud   = fraudScore != null ? fraudScore.toFixed(2) : '—';
+    const fraudValCls = fraudHigh ? 'fraud-high' : 'fraud-ok';
+
+    html += `
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-key">Category</div>      <div class="metric-val">${fmtEnum(t.category)}</div></div>
+        <div class="metric"><div class="metric-key">Cover Type</div>     <div class="metric-val">${fmtEnum(t.cover_type) || '—'}</div></div>
+        <div class="metric"><div class="metric-key">Repair Scope</div>   <div class="metric-val">${fmtEnum(t.repair_scope) || '—'}</div></div>
+        <div class="metric"><div class="metric-key">Reserve Est.</div>   <div class="metric-val">${reserve}</div></div>
+        <div class="metric"><div class="metric-key">Policy Excess</div>  <div class="metric-val">${excess}</div></div>
+        <div class="metric"><div class="metric-key">Fraud Score</div>    <div class="metric-val ${fraudValCls}">${fraud}${fraudHigh ? ' ⚠' : ''}</div></div>
+      </div>`;
+
+    // Action result
+    if (result.action_result && result.action_result.summary) {
+      html += `<div class="action-result">✓ ${escHtml(result.action_result.summary)}</div>`;
+    }
+
+    // Reasoning collapsible
+    if (t.reasoning) {
+      html += `
+        <details>
+          <summary>Reasoning chain</summary>
+          <div class="reasoning-text">${escHtml(t.reasoning)}</div>
+        </details>`;
+    }
+
+    if (result.retry_count > 0) {
+      html += `<p style="font-size:11px;color:var(--muted);margin-top:10px">Validation retries: ${result.retry_count}</p>`;
+    }
+
+    card.innerHTML = html;
+    card.classList.add('visible');
+
+    // Animate confidence bar after render
+    requestAnimationFrame(() => {
+      const bar = document.getElementById('conf-bar');
+      if (bar) bar.style.width = conf + '%';
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Status
+  // ---------------------------------------------------------------------------
+  function setProcessing(on) {
+    processing = on;
+    const btn  = document.getElementById('submit-btn');
+    const dot  = document.getElementById('status-dot');
+    const lbl  = document.getElementById('status-label');
+    btn.disabled = on;
+    if (on) {
+      dot.className  = 'status-dot processing';
+      lbl.textContent = 'Processing…';
+      btn.textContent = 'Processing…';
+    } else {
+      dot.className  = 'status-dot done';
+      lbl.textContent = 'Done';
+      btn.textContent = 'Submit Claim';
+      setTimeout(() => {
+        if (!processing) { dot.className = 'status-dot'; lbl.textContent = 'Idle'; }
+      }, 3000);
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    const dot = document.getElementById('status-dot');
+    dot.className = 'status-dot error';
+    document.getElementById('status-label').textContent = 'Error';
+  }
+  function hideError() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function fmtEnum(val) {
+    if (!val) return '';
+    return String(val).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------------
+  loadClaims();
+</script>
+</body>
+</html>
