@@ -1,0 +1,110 @@
+[
+  {
+    "request_id": "CLM-2024-000001",
+    "body": "Burst pipe under the kitchen sink last night — water damage to the cabinet underneath and the laminate flooring. Plumber has quoted £320 to fix the pipe, replace the U-bend, and repair the cabinet.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "web_form",
+    "timestamp": "2024-11-15T09:23:00Z",
+    "_scenario": "NORM: Small escape of water, reserve < £500, above excess (£250) → expected: auto_approve_payment"
+  },
+  {
+    "request_id": "CLM-2024-000002",
+    "body": "Storm damage overnight — three roof tiles blown off, one has cracked the conservatory roof panel below. Getting quotes from two roofers; the first estimate is £1,800 for both repairs.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "email",
+    "timestamp": "2024-11-16T08:05:00Z",
+    "_scenario": "NORM: Storm damage, reserve ~£1,800, clear cause → expected: fast_track_adjuster"
+  },
+  {
+    "request_id": "CLM-2024-000003",
+    "body": "We came home at 10pm to find the back door had been forced open. Laptop, smart TV, and my wife's jewellery are missing. I've reported it to the police — crime reference CR/2024/55821. Can I submit a claim for the stolen items?",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "web_form",
+    "timestamp": "2024-11-17T22:41:00Z",
+    "_scenario": "NORM: Theft with police report, reserve likely £2,000-£4,000 → expected: fast_track_adjuster + request proof_of_ownership"
+  },
+  {
+    "request_id": "CLM-2024-000004",
+    "body": "Kitchen fire this morning — chip pan caught alight. The fire brigade attended (incident number FB/2024/9981). The kitchen has significant fire and smoke damage throughout and we cannot use the ground floor at all. We may need emergency accommodation.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "phone_transcript",
+    "timestamp": "2024-11-18T11:15:00Z",
+    "_scenario": "NORM: Fire damage, significant/total loss scope, high reserve → expected: escalate_to_human (specialist adjuster)"
+  },
+  {
+    "request_id": "CLM-2024-000005",
+    "body": "There's water coming through my kitchen ceiling but I'm not sure if it's a pipe or from the flat upstairs. My landlord says it's my problem but I'm a tenant — I don't own the flat. The leak started two days ago.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "web_form",
+    "timestamp": "2024-11-19T14:33:00Z",
+    "_scenario": "NORM: Cover uncertainty — possible tenant, unclear source → expected: request_more_info"
+  },
+  {
+    "request_id": "CLM-2024-000006",
+    "body": "Someone tried to break in overnight — scratches around the back door lock and a small crack in the door frame, but they didn't get in. Locksmith has quoted £165 to replace the lock and fill the crack.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "web_form",
+    "timestamp": "2024-11-20T07:55:00Z",
+    "_scenario": "EDGE: Attempted theft, reserve £165 < excess £250 → expected: deny (loss below excess)"
+  },
+  {
+    "request_id": "CLM-2024-000007",
+    "body": "Heavy rain last week caused surface water to come in under our front door and soak the hallway carpet and some of the skirting boards. Several neighbours on the street have also been affected.",
+    "policy_number": "HI-2024-000002",
+    "claimant_name": "David Jones",
+    "channel": "email",
+    "timestamp": "2024-11-21T10:20:00Z",
+    "_scenario": "NORM: Flood, but HI-2024-000002 has flood as named exclusion → expected: deny or escalate for confirmation"
+  },
+  {
+    "request_id": "CLM-2024-000008",
+    "body": "I accidentally knocked my MacBook Pro off my desk and cracked the screen. It's two years old. Apple say the screen repair is £420 but replacing the whole unit would be £1,100 as they no longer sell that model.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "web_form",
+    "timestamp": "2024-11-22T16:10:00Z",
+    "_scenario": "EDGE: Accidental damage, repair quote £420 > excess £250 but < £500 auto-threshold, replacement £1,100 > threshold → borderline: auto_approve (repair) or fast_track (replacement)"
+  },
+  {
+    "request_id": "CLM-2024-000009",
+    "body": "Burst pipe in the bathroom wall — plumber says it's been leaking inside the wall for months and has caused significant damp and mould throughout the bathroom and into the bedroom. Estimate for remediation and replastering is £6,400.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "web_form",
+    "timestamp": "2024-11-23T09:00:00Z",
+    "_scenario": "EDGE: Escape of water but gradual deterioration language ('leaking for months') — should trigger policy exclusion check → expected: deny or escalate"
+  },
+  {
+    "request_id": "CLM-2024-000010",
+    "body": "Storm took out our large oak tree which fell onto the garage roof and completely destroyed it. The car inside also has major damage. The garage is uninhabitable and structurally unsafe according to our builder.",
+    "policy_number": "HI-2024-000002",
+    "claimant_name": "David Jones",
+    "channel": "email",
+    "timestamp": "2024-11-24T13:45:00Z",
+    "_scenario": "NORM: Storm damage, total loss scope (garage), high reserve → expected: escalate_to_human (specialist adjuster, total loss)"
+  },
+  {
+    "request_id": "CLM-2024-000011",
+    "body": "Storm damage to my fence panels — four sections blown over. Local fencer quoted £280 to replace them.",
+    "policy_number": "HI-2024-000002",
+    "claimant_name": "David Jones",
+    "channel": "web_form",
+    "timestamp": "2024-11-25T11:30:00Z",
+    "_scenario": "EDGE: Storm damage, reserve £280 < excess £500 (HI-2024-000002) → expected: deny (loss below excess)"
+  },
+  {
+    "request_id": "CLM-2024-000012",
+    "body": "Water damage claim for a burst pipe. I'm going through an incredibly difficult time — my husband passed away three weeks ago and I'm trying to manage all of this on my own for the first time. I'm not sure I understand all the forms.",
+    "policy_number": "HI-2024-000001",
+    "claimant_name": "Jane Smith",
+    "channel": "phone_transcript",
+    "timestamp": "2024-11-26T14:00:00Z",
+    "_scenario": "NORM: Escape of water, but vulnerable customer indicator (bereavement) → expected: escalate_to_human (FCA Consumer Duty, priority handler)"
+  }
+]
