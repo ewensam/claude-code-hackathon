@@ -1,173 +1,109 @@
-# Claude Code Hackathon
+# Claude Code Hackathon — UK Home Insurance Claims Triage Agent
 
-## The Point
+## Solo vs. Team Note
 
-This is a hack. You get a team, a scenario, and Claude Code. The scenarios are enterprise-flavored briefs: a monolith nobody understands, a migration nobody agrees on, seven systems that can't agree on what a customer is. Real problems, compressed.
+This project is completed by a single participant. The hackathon brief assumes a team with PM, architect, dev, test, and platform roles. Here, one person plays every role, and Claude Code is the force multiplier that makes it viable. As a result:
 
-There's no prescribed path. Each scenario sketches a handful of challenges worth working toward. How you get there, what stack you pick, what you skip, what you invent on top is up to you. We care about ambition and judgment, not box-checking.
-
----
-
-## The Setup
-
-Pick one scenario. Work with your team. Get as far as you can.
-
-Each scenario sketches a handful of challenges. You probably won't do them all, and that's the point. **Depth beats breadth.** Pick the ones that interest you, work in parallel where you can, and let Claude help you coordinate.
+- **`CLAUDE.md` is simpler.** No need for a shared conventions doc to coordinate multiple people. One project-level `CLAUDE.md` is sufficient; the three-level hierarchy (user / project / directory) is still used, but the user level lives in `~/.claude/CLAUDE.md` as personal preferences, and the directory level is only added where per-module context genuinely differs.
+- **Depth over breadth is more important.** With one person, attempting all eight challenges is unrealistic. Challenges are picked for maximum cert-domain coverage and production-readiness signal.
+- **No coordination overhead.** Decisions are made, documented in ADRs, and committed.
 
 ---
-
-## How Your Team Works
-
-The scenarios span the SDLC, so there's meaningful work for PM, architect, dev, test, and platform. You won't have one of each, and that's fine. **Play every role, regardless of your day job.** Claude Code doesn't care what your title is, and a lot of what makes the hack interesting is watching the tool perform in parts of the work you don't normally touch.
-
-Divide the challenges up early. Share a running `CLAUDE.md` so everyone teaches the tool the same conventions. Commit often. The commit history is part of the submission and part of how the judges read the journey.
-
----
-
-## The Rules
-
-1. **Tech stack is yours to choose.** One exception: Scenario 5 requires the **Claude Agent SDK**. Use Claude to help you learn it, or to migrate if you're coming from another framework.
-2. **You may need to build starter code, data, or documents.** If the scenario says "a 12-year-old monolith exists," you generate it. That's part of the job. Some scenarios offer optional starter repos. Use them or don't.
-3. **Play every role.** Your team needs a PM, architect, developer, tester, data engineer, and infra engineer whether you staffed for it or not.
-4. **Commit history is evidence.** We want to see the journey, not just the destination.
-5. **`CLAUDE.md` is your friend.** Teach it your conventions early.
-6. **Document your work.** Your repo must include a `README.md` (template below) explaining what you built and what you'd do next.
-7. **Build a presentation.** Use Claude Code to generate an HTML presentation you *could* deliver if you win the judging. It lives in your repo whether you present or not.
-8. **Claude will judge.** At the end, Claude evaluates submissions. A handful of teams present live.
-
----
-
-## The Scenarios
-
-| \# | Scenario | One-liner |
-| :---- | :---- | :---- |
-| 1 | **[Code Modernization](01-code-modernization.md)** | A monolith nobody understands. The board wants it "modernized." |
-| 2 | **[Cloud Migration](02-cloud-migration.md)** | On-prem to cloud. The CFO and CTO disagree on how. |
-| 3 | **[Data Engineering](03-data-engineering.md)** | Seven systems. Zero agreement on what a "customer" is. |
-| 4 | **[Data Analytics](04-data-analytics.md)** | 40 dashboards. One metric. Four different answers. |
-| 5 | **[Agentic Solution](05-agentic-solution.md)** (Claude Agent SDK) | 200 requests a day, triaged by hand. Build the agent. |
-
----
-
-## Techniques to Reach For
-
-These are the patterns the Claude Code Architecture certification tests on. No scenario requires them, and no challenge dictates which to use. They're here because a lot of teams also want the hack to double as cert practice. Pick two or three you want to get reps on, and reach for them inside whichever challenges you pursue.
-
-**Agentic Architecture**
-
-- Coordinator plus specialist subagents via the Task tool, with context passed *explicitly* in each call (Task subagents don't inherit coordinator context).
-- Stop conditions that are real signals, not "parse the text" or "iteration cap."
-- `fork_session` to try two paths on the same input and compare.
-
-**Tool Design & MCP**
-
-- Tool descriptions that say what the tool *does* and what it *does not*. Input formats, edge cases, example queries.
-- Structured error responses (`isError: true` with a reason code and guidance) so the agent can recover gracefully.
-- Keep each specialist's tool count small. Reliability tends to drop once an agent has more than a handful.
-- An MCP server over whatever system you built, so a fresh Claude session picks the right tool on the first try.
-
-**Claude Code Config**
-
-- Three-level `CLAUDE.md`: user (personal preferences), project (shared, in VCS), directory (per-module specifics).
-- Custom slash commands *and* skills, used distinctly. A command runs a playbook; a skill captures reusable guidance.
-- Plan Mode for anything reversible-dangerous; direct execution for the safe paths. Defend the default.
-- Non-interactive Claude Code in CI, with scoped tools and no write access to production paths.
-
-**Prompt Engineering**
-
-- Explicit criteria in place of vague modifiers. "Material," "significant," and "recent" are usually a signal that the definition needs sharper thresholds.
-- Few-shot examples with a negative case and a boundary case. Two sharp examples outperform eight fuzzy ones.
-- `tool_use` with a JSON Schema for anything that must parse. Don't prompt-for-JSON.
-- Validation-retry loop: structured validator checks the output, errors are fed back, Claude retries up to N times. Log retry count and error type.
-
-**Context Management**
-
-- Hooks for deterministic guardrails (`PreToolUse` to block, `PostToolUse` to redact). Prompts for probabilistic preferences. An ADR on why each is which is worth writing; the distinction shows up repeatedly on the exam.
-- Escalation rules that are category plus confidence plus impact, not "when the agent isn't sure."
-- Stratified sampling and field-level confidence when humans review.
-
----
-
-## The Judging
-
-Claude does the first pass. Top teams present live.
-
-**What definitely gets read:**
-
-1. Your `README.md`
-2. Your `presentation.html`
-3. Your `CLAUDE.md`
-
-These are your pitch. Don't leave them to the end. If Claude only sees those three files, it should still understand what you built, why it matters, how far you got, and how you taught the tool to work your way. We may go deeper into the repo, we may not. Assume those three carry the weight.
-
-**What we're looking for** (final categories will be a surprise!, but think along these lines):
-
-- **Most production-ready.** Could hand it to an ops team Monday.
-- **Best architecture thinking.** ADRs, diagrams, decisions someone will thank you for later.
-- **Best testing.** Not coverage. Adversarial thinking, edge cases, evals.
-- **Best product work.** Stories that are actually stories. Docs that persuade.
-- **Most inventive Claude Code use.** Subagents, hooks, skills, something we didn't expect.
-- **Wildcards:** best CI/CD, best legacy archaeology, best "what if this goes wrong" thinking, furthest through the challenges with quality intact, team that questioned a scenario requirement and was *right*.
-
----
-
-## Submission
-
-You need three files:
-
-1. **`README.md`** tells the story. Use the template below.
-2. **`CLAUDE.md`** so we can see how you taught Claude Code to work your way.
-3. **`presentation.html`**, your HTML deck built with Claude Code, ready to present if called.
-
-**Preferred:** put the three files in a folder named for your table and team (for example `Table1_SonnetSlayers/`) and upload the folder to the link provided at your session.
-
-**Alternative:** if a folder upload isn't supported, zip the three files into an archive with the same naming convention (for example `Table1_SonnetSlayers.zip`) and upload that instead.
-
-Either way, **one submission per team**.
-
-**NO CLIENT OR INTERNAL DATA.** Anything in the submission must be safe to share.
-
----
-
-## README Template
-
-Copy this into your repo's `README.md` and fill it in as you go, not at the end.
-
-```
-# Team <name>
 
 ## Participants
-- Name (role(s) played today)
-- Name (role(s) played today)
-- Name (role(s) played today)
+
+- Sam Ewen (PM, Architect, Developer, QA — all roles)
+
+---
 
 ## Scenario
-Scenario <#>: <title>
+
+Scenario 5: Agentic Solution — UK Home Insurance Claims Triage Agent
+
+**Domain chosen:** UK Home Insurance. Inbound claims arrive from claimants via web form, email, and chat. The agent classifies the claim type (escape of water, storm damage, theft, fire), estimates the reserve, checks fraud/sanctions, and decides: auto-approve payment (≤£500), fast-track to adjuster, request more documentation, deny (below excess or excluded cause), or escalate to human. FCA Consumer Duty and UK regulatory context throughout.
+
+---
 
 ## What We Built
-A couple of paragraphs. What exists in this repo that didn't exist when you
-started. What runs, what's scaffolding, what's faked.
+
+An end-to-end claims triage agent built on the Claude Agent SDK. A coordinator agent ingests inbound claims, enriches them with policy details, fraud scores, and a reserve estimate via specialist subagents, then routes them to the appropriate outcome.
+
+Two specialist subagents divide the read/write boundary: `TriageSpecialist` runs all read-only enrichment (policy lookup, fraud check, reserve estimation); `ActionSpecialist` executes writes (payment approval up to £500, adjuster queue assignment, denial recording, document requests). A `PreToolUse` hook hard-blocks write actions that hit mandatory stop conditions — payment above £500, sanctions matches, lapsed policies — before the LLM can reach them. A validation-retry loop wraps structured output: schema failures are fed back with the specific error and retried up to three times before escalating.
+
+What runs: coordinator agent, two specialist subagents, five custom tools, PreToolUse hook, adversarial eval set.
+What's scaffolded: the human-approval UI (stubbed as CLI prompt), CI eval harness (runs locally, not yet wired to CI).
+
+---
 
 ## Challenges Attempted
+
 | # | Challenge | Status | Notes |
 |---|---|---|---|
-| 1 | The <name> | done / partial / skipped | |
-| 2 | | | |
+| 1 | The Mandate | done | `docs/mandate.md` — scope, escalation policy, deliberate exclusions, FCA/FOS compliance notes |
+| 2 | The Bones | done | `decisions/ADR-001` with coordinator/specialist diagram, stop_reason handling, context-passing template |
+| 3 | The Tools | done | 5 tools across 2 specialists; structured errors with reason codes and retryable flag |
+| 4 | The Triage | done | Coordinator with validation-retry loop, full reasoning log per claim |
+| 5 | The Brake | done | `PreToolUse` hook + explicit escalation table (category + fraud score + reserve + regulatory triggers) |
+| 6 | The Attack | partial | 10 labelled adversarial cases; harness runs locally |
+| 7 | The Scorecard | skipped | |
+| 8 | The Loop | skipped | |
+
+---
 
 ## Key Decisions
-Biggest calls you made and why. Link into `/decisions` for the full ADRs.
+
+- **UK Home Insurance domain** — domain expertise in this area makes the escalation thresholds and exclusion rules defensible rather than invented. FCA Consumer Duty and FOS escalation path add real regulatory grounding to the mandate.
+- **Auto-payment up to £500** — the agent makes a real write decision, not just a classification. This made the `PreToolUse` hook essential rather than optional, and surfaces the hardest design question in the scenario: where does the LLM stop and the hard block begin.
+- **Coordinator + two specialists split at the read/write boundary** — the `ActionSpecialist` is the only agent that needs the `PreToolUse` hook. See [decisions/ADR-001](decisions/ADR-001-agent-architecture.md).
+- **Structured errors over string errors** — `retryable` flag drives recovery logic mechanically, not via prompt engineering. See [decisions/ADR-002](decisions/ADR-002-tool-error-format.md).
+- **Escalation uses category + fraud score + reserve + regulatory triggers** — not a single confidence threshold. The compliance team can read and sign off on the table without reading code. See [decisions/ADR-003](decisions/ADR-003-escalation-rules.md).
+
+---
 
 ## How to Run It
-Exact commands. Assume the reader has Docker and nothing else.
 
-## If We Had More Time
-What you'd tackle next, in priority order. Be honest about what's held
-together with tape.
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-## How We Used Claude Code
-What worked. What surprised you. Where it saved the most time.
+# Set your API key
+export ANTHROPIC_API_KEY=your_key_here
+
+# Run the agent on a single claim
+python src/main.py --policy HI-2024-000001 --claimant "Jane Smith" \
+  --body "Burst pipe under the kitchen sink. Water damage to cabinet and flooring. Plumber quote is £320."
+
+# Run a storm damage claim
+python src/main.py --policy HI-2024-000002 --claimant "David Jones" \
+  --body "Storm last night took out three roof tiles. Getting quotes — roofer estimated around £1,800."
+
+# Run with human-approval mode enabled
+python src/main.py --policy HI-2024-000001 --claimant "Jane Smith" \
+  --body "Kitchen fire, significant smoke damage throughout ground floor." \
+  --require-approval
+
+# Run the adversarial eval set
+python evals/run_evals.py
 ```
 
 ---
 
-**Pick a scenario. Start building.**
+## If We Had More Time
+
+1. **Scorecard CI harness** — wire `evals/run_evals.py` into GitHub Actions; accuracy and adversarial-pass rate move with every commit and are visible to the risk team.
+2. **The Loop** — pipe human override signals back as labelled few-shot examples for the classifier, closing the feedback loop end-to-end.
+3. **Real channel connectors** — email IMAP poller and web form webhook instead of CLI input.
+4. **Approval surface** — replace the CLI prompt with a minimal web UI showing the reasoning chain, fraud score, and reserve estimate alongside approve/override buttons.
+5. **MCP server** — expose `policy_lookup`, `fraud_check`, and `reserve_estimator` as an MCP server so any fresh Claude session picks the right tool on the first try without re-implementing the tool layer.
+6. **Claims history tool** — deliberately excluded from the initial build to keep specialist tool count at 3. Would be the natural next addition to `TriageSpecialist`.
+7. **Flood Re scheme check** — flood claims on Flood Re properties need a separate routing path; currently escalated to adjuster with a manual flag.
+
+---
+
+## How We Used Claude Code
+
+- Used Plan Mode before every architecture and domain-modelling decision — forced explicit reasoning about coordinator/specialist boundaries and escalation threshold design before writing any code.
+- `CLAUDE.md` tool-design rules (structured errors, 4–5 tools per specialist, boundary descriptions) were written first and used as a constraint during implementation. Claude Code flagged two tool descriptions missing a "what it does NOT do" section before they were accepted.
+- Subagent context passing was the hardest part to get right. The explicit context block template in `CLAUDE.md` was written after the first coordinator run showed the specialist had no knowledge of the claim body.
+- The adversarial eval set was built collaboratively: asked Claude Code to generate prompt-injection and metadata-spoofing variants for each claim category, then reviewed and labelled them manually.
+- The `PreToolUse` hook boundary — hard stop vs. soft escalation — was the design question that generated the most iteration. The ADR captures the reasoning; the `CLAUDE.md` captures the rule.
